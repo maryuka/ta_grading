@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(curl:*)",
+      "Bash(/dev/null)",
+      "Bash(cat:*)",
+      "Bash(python:*)",
+      "Bash(grep:*)",
+      "Bash(true)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

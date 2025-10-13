@@ -1,5 +1,23 @@
+### バックエンド ###
 # 課題データファイル
-/data
-
+/backend/data
 # 環境変数
-/.env
+/backend/.env
+/backend/__pycache__
+
+
+### フロントエンド ###
+# Logs
+/frontend/logs
+/frontend/*.log
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
+/frontend/pnpm-debug.log*
+/frontend/lerna-debug.log*
+
+/frontend/node_modules
+/frontend/dist
+/frontend/dist-ssr
+/frontend/*.local
+
