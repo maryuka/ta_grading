@@ -125,6 +125,7 @@ def main():
             
             missing_items = check_header(source_code)
             if missing_items:
+                feedback += f"{ASSIGNMENT_NAME}.cに, "
                 feedback += ",".join([f" {item}" for item in missing_items])
                 feedback += "を記入してください."
                 df.loc[index, 'フィードバックコメント'] = feedback
