@@ -108,3 +108,117 @@ button {
 button:hover {
     background-color: #0056b3;
 }
+
+/* Vibesボタンのコントラスト改善 */
+.vb-button {
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.vb-button svg {
+    font-size: 1em !important;
+    vertical-align: middle !important;
+}
+
+.vb-button--appearance-primary {
+    background-color: #0066cc !important;
+    border-color: #0066cc !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 4px rgba(0, 102, 204, 0.3) !important;
+}
+
+.vb-button--appearance-primary:hover:not(:disabled) {
+    background-color: #0052a3 !important;
+    border-color: #0052a3 !important;
+    box-shadow: 0 4px 6px rgba(0, 102, 204, 0.4) !important;
+}
+
+.vb-button--appearance-secondary {
+    background-color: #ffffff !important;
+    border: 2px solid #0066cc !important;
+    color: #0066cc !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.vb-button--appearance-secondary:hover:not(:disabled) {
+    background-color: #f0f7ff !important;
+    border-color: #0052a3 !important;
+    color: #0052a3 !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15) !important;
+}
+
+.vb-button--appearance-tertiary {
+    background-color: #f8f9fa !important;
+    border: 1px solid #6c757d !important;
+    color: #495057 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+.vb-button--appearance-tertiary:hover:not(:disabled) {
+    background-color: #e9ecef !important;
+    border-color: #495057 !important;
+    color: #212529 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12) !important;
+}
+
+.vb-button:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+}
+
+/* 保存ボタンの特別なスタイル */
+.save-button-unsaved {
+    background-color: #ff6b00 !important;
+    border-color: #ff6b00 !important;
+    color: white !important;
+    font-weight: bold !important;
+    box-shadow: 0 3px 6px rgba(255, 107, 0, 0.3) !important;
+}
+
+.save-button-unsaved:hover {
+    background-color: #e55a00 !important;
+    border-color: #e55a00 !important;
+    box-shadow: 0 4px 8px rgba(255, 107, 0, 0.4) !important;
+}
+
+.save-button-reviewed {
+    background-color: #28a745 !important;
+    border-color: #28a745 !important;
+    color: white !important;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3) !important;
+}
+
+.save-button-reviewed:hover {
+    background-color: #218838 !important;
+    border-color: #218838 !important;
+    box-shadow: 0 3px 6px rgba(40, 167, 69, 0.4) !important;
+}
+
+.save-button-new {
+    background-color: #007bff !important;
+    border-color: #007bff !important;
+    color: white !important;
+    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3) !important;
+}
+
+.save-button-new:hover {
+    background-color: #0056b3 !important;
+    border-color: #0056b3 !important;
+    box-shadow: 0 3px 6px rgba(0, 123, 255, 0.4) !important;
+}
+
+/* 背景色調整 */
+body {
+    background-color: #ffffff !important;
+}
+
+.sidebar {
+    background-color: #fafafa !important;
+}
+
+.main-content {
+    background-color: #ffffff !important;
+}

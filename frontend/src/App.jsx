@@ -1,6 +1,26 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Routes, Route, NavLink, useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import '@freee_jp/vibes/css';
+import { 
+    Button,
+    TextArea,
+    Container,
+    Note
+} from '@freee_jp/vibes';
+import { 
+    FaDownload, 
+    FaHome, 
+    FaSearch, 
+    FaEdit, 
+    FaCheck, 
+    FaSave,
+    FaRedo,
+    FaChevronLeft,
+    FaChevronRight,
+    FaPencilAlt,
+    FaClock
+} from 'react-icons/fa';
 
 // 学生リストコンポーネント
 const StudentList = ({ students, unsavedFeedbacks }) => {
@@ -25,9 +45,7 @@ const StudentList = ({ students, unsavedFeedbacks }) => {
                         {getStatusIcon(s)} {s['フルネーム']}
                     </NavLink>
                     {unsavedFeedbacks && unsavedFeedbacks[s['広大ID']] && (
-                        <span style={{ color: '#ff6b00', fontSize: '12px', marginLeft: '10px' }}>
-                            (未保存)
-                        </span>
+                        <span style={{ color: '#ff6b00', fontSize: '12px', marginLeft: '10px' }}>(未保存)</span>
                     )}
                 </li>
             ))}
@@ -221,7 +239,7 @@ const GradingView = ({ students, setStudents, unsavedFeedbacks, setUnsavedFeedba
                 
                 {/* 提出ファイル一覧 */}
                 {details.files && details.files.length > 0 && (
-                    <div style={{ background: '#f5f5f5', padding: '6px 10px', borderRadius: '4px', fontSize: '14px' }}>
+                    <div style={{ background: '#f0f8ff', padding: '6px 10px', borderRadius: '4px', fontSize: '14px', border: '1px solid #d0e5ff' }}>
                         <strong>提出ファイル:</strong> {
                             details.files.map((file, index) => {
                                 const expectedFiles = [
@@ -257,79 +275,69 @@ const GradingView = ({ students, setStudents, unsavedFeedbacks, setUnsavedFeedba
 
 
             {details.auto_check_result && details.auto_check_result !== '' && (
-                <div style={{ 
-                    background: '#f0f8ff', 
-                    padding: '12px', 
-                    borderRadius: '8px', 
-                    marginBottom: '12px',
-                    border: '1px solid #4682b4'
-                }}>
-                    <h4 style={{ marginTop: 0, marginBottom: '8px', color: '#2c5aa0' }}>
-                        🔍 自動チェック結果
-                    </h4>
-                    <div style={{ marginBottom: '8px' }}>
-                        {details.auto_check_result}
+                <Note type="info">
+                    <div style={{ backgroundColor: '#fff3cd', padding: '12px', borderRadius: '4px', border: '1px solid #ffc107' }}>
+                        <strong style={{ color: '#856404' }}>🔍 自動チェック結果</strong>
+                        <div style={{ marginTop: '8px', color: '#333' }}>{details.auto_check_result}</div>
+                        <Button
+                            onClick={() => {
+                                if (feedback && feedback.trim() !== '') {
+                                    const confirmed = window.confirm(
+                                        '既存のフィードバックが入力されています。\n' +
+                                        '自動チェック結果で上書きしますか？'
+                                    );
+                                    if (!confirmed) return;
+                                }
+                                setFeedback(details.auto_check_result);
+                            }}
+                            small
+                            mt={0.5}
+                            appearance="secondary"
+                        >
+                            <FaPencilAlt /> この内容でフィードバックを入力
+                        </Button>
                     </div>
-                    <button
-                        onClick={() => {
-                            if (feedback && feedback.trim() !== '') {
-                                const confirmed = window.confirm(
-                                    '既存のフィードバックが入力されています。\n' +
-                                    '自動チェック結果で上書きしますか？'
-                                );
-                                if (!confirmed) return;
-                            }
-                            setFeedback(details.auto_check_result);
-                        }}
-                        style={{
-                            backgroundColor: '#4682b4',
-                            color: 'white',
-                            border: 'none',
-                            padding: '6px 12px',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '14px'
-                        }}
-                    >
-                        この内容でフィードバックを入力
-                    </button>
-                </div>
+                </Note>
             )}
 
             <h4 style={{ marginBottom: '8px' }}>
                 フィードバックコメント
-                {isReviewed && <span style={{ color: 'green' }}>(レビュー済み)</span>}
+                {isReviewed && <span style={{ color: 'green', marginLeft: '8px' }}>(レビュー済み)</span>}
             </h4>
-            <textarea
+            <TextArea
                 value={feedback}
                 onChange={e => setFeedback(e.target.value)}
                 style={{
-                    backgroundColor: hasUnsavedChanges ? '#fffbf0' : 'white',
-                    width: '100%',
-                    height: '50px',
-                    resize: 'vertical'
+                    backgroundColor: hasUnsavedChanges ? '#fffbf0' : 'white'
                 }}
+                rows={3}
+                width="full"
             />
             <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
                 ショートカット: {navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl'}+S (保存) / {navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl'}+Enter (保存して次へ) / {navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl'}+←→ (前後の学生へ)
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button
+                <Button
                     onClick={handleSave}
-                    style={{
-                        backgroundColor: hasUnsavedChanges ? '#ff6b00' : '#007bff',
-                        fontWeight: hasUnsavedChanges ? 'bold' : 'normal',
+                    appearance="primary"
+                    className={hasUnsavedChanges ? 'save-button-unsaved' : (isReviewed ? 'save-button-reviewed' : 'save-button-new')}
+                    style={hasUnsavedChanges ? {
+                        backgroundColor: '#ff6b00',
+                        borderColor: '#ff6b00',
                         color: 'white',
-                        border: 'none',
-                        padding: '8px 16px',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
+                        fontWeight: 'bold',
+                        boxShadow: '0 3px 6px rgba(255, 107, 0, 0.3)'
+                    } : {
+                        backgroundColor: isReviewed ? '#28a745' : '#0066cc',
+                        borderColor: isReviewed ? '#28a745' : '#0066cc',
+                        color: 'white',
+                        boxShadow: isReviewed ? '0 2px 4px rgba(40, 167, 69, 0.3)' : '0 2px 4px rgba(0, 102, 204, 0.3)'
                     }}
                 >
-                    {hasUnsavedChanges ? 'レビュー完了にする' : (isReviewed ? 'レビュー更新' : 'レビュー完了')}
-                </button>
-                <button onClick={goToPrev} disabled={!hasPrev}>← 前へ</button>
-                <button onClick={goToNext} disabled={!hasNext}>次へ →</button>
+                    {hasUnsavedChanges ? <><FaSave /> レビュー完了にする</> : (isReviewed ? <><FaRedo /> レビュー更新</> : <><FaCheck /> レビュー完了</>)}
+                </Button>
+                <Button onClick={goToPrev} disabled={!hasPrev} appearance="secondary"><FaChevronLeft /> 前の学生</Button>
+                <Button onClick={goToNext} disabled={!hasNext} appearance="secondary">次の学生 <FaChevronRight /></Button>
             </div>
         </div>
     );
@@ -423,64 +431,53 @@ const HomePage = ({ students, setStudents }) => {
     };
 
     return (
-        <div style={{ padding: '20px' }}>
-            <h1>レビュー記入アプリ</h1>
+        <Container width="full">
+            <div style={{ padding: '20px' }}>
+                <h1>レビュー記入アプリ</h1>
 
-            <div style={{ background: '#f0f0f0', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
-                <h2>レビュー管理</h2>
-                <p>総提出数: {stats.total}人</p>
-                <p>✅ レビュー済み: {stats.reviewed}人</p>
-                <p>⚠️ 自動指摘あり: {stats.needsReview}人</p>
-                <p>📝 未レビュー: {stats.pending}人</p>
-            </div>
+                <div style={{ background: '#e8f4ff', padding: '1.5rem', borderRadius: '8px', marginBottom: '20px', border: '1px solid #b8deff' }}>
+                    <h2>レビュー管理</h2>
+                    <p>総提出数: <strong>{stats.total}人</strong></p>
+                    <p style={{ color: 'green' }}>✅ レビュー済み: {stats.reviewed}人</p>
+                    <p style={{ color: 'orange' }}>⚠️ 自動指摘あり: {stats.needsReview}人</p>
+                    <p>📝 未レビュー: {stats.pending}人</p>
+                </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>
                 <Link to="/grading">
-                    <button style={{ padding: '10px 20px', fontSize: '16px' }}>
-                        採点を開始
-                    </button>
+                    <Button appearance="primary" large>
+                        <><FaEdit /> 採点を開始</>
+                    </Button>
                 </Link>
                 {autoCheckStatus && autoCheckStatus.checked ? (
-                    <button
+                    <Button
                         disabled={true}
-                        style={{ 
-                            padding: '10px 20px', 
-                            fontSize: '16px',
-                            backgroundColor: '#6c757d',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'not-allowed'
-                        }}
+                        appearance="secondary"
+                        large
                     >
                         ✅ この課題では自動チェック済みです
-                    </button>
+                    </Button>
                 ) : (
-                    <button
+                    <Button
                         onClick={handleAutoCheckAll}
                         disabled={checkingAll}
-                        style={{ 
-                            padding: '10px 20px', 
-                            fontSize: '16px',
-                            backgroundColor: checkingAll ? '#6c757d' : '#28a745',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: checkingAll ? 'not-allowed' : 'pointer'
-                        }}
+                        appearance="primary"
+                        large
                     >
-                        {checkingAll ? `チェック中... (${checkProgress.current}/${checkProgress.total})` : '🔍 全学生を自動チェック'}
-                    </button>
+                        {checkingAll ? <><FaClock /> チェック中... ({checkProgress.current}/{checkProgress.total})</> : <><FaSearch /> 全学生を自動チェック</>}
+                    </Button>
                 )}
-                <button
+                <Button
                     onClick={handleExport}
                     disabled={exporting}
-                    style={{ padding: '10px 20px', fontSize: '16px' }}
+                    appearance="secondary"
+                    large
                 >
-                    {exporting ? 'エクスポート中...' : 'CSVエクスポート'}
-                </button>
+                    {exporting ? <><FaClock /> エクスポート中...</> : <><FaDownload /> CSVダウンロード</>}
+                </Button>
             </div>
-        </div>
+            </div>
+        </Container>
     );
 };
 
@@ -507,7 +504,7 @@ function App() {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <h3>提出済み学生 ({students.length}人)</h3>
                             <Link to="/">
-                                <button style={{ padding: '5px 10px' }}>ホーム</button>
+                                <Button small appearance="secondary"><FaHome /> ホーム</Button>
                             </Link>
                         </div>
                         <StudentList students={students} unsavedFeedbacks={unsavedFeedbacks} />
@@ -523,7 +520,7 @@ function App() {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <h3>提出済み学生 ({students.length}人)</h3>
                             <Link to="/">
-                                <button style={{ padding: '5px 10px' }}>ホーム</button>
+                                <Button small appearance="secondary"><FaHome /> ホーム</Button>
                             </Link>
                         </div>
                         <StudentList students={students} unsavedFeedbacks={unsavedFeedbacks} />
