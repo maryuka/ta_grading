@@ -6,7 +6,6 @@ import {
     PageTitle,
     Button,
     ListTable,
-    StatusIcon,
     Text,
     Stack,
     Loading,
@@ -68,9 +67,9 @@ const StudentListPage = () => {
     
     const getStatusDisplay = (status) => {
         switch(status) {
-            case 'completed': return { icon: 'success', text: 'レビュー済み', color: 'success' };
-            case 'needs-review': return { icon: 'warning', text: '要確認', color: 'warning' };
-            default: return { icon: 'info', text: '未レビュー', color: 'grey' };
+            case 'completed': return { text: 'レビュー済み', color: 'success' };
+            case 'needs-review': return { text: '要確認', color: 'warning' };
+            default: return { text: '未レビュー', color: 'grey' };
         }
     };
     
@@ -98,10 +97,7 @@ const StudentListPage = () => {
             cells: [
                 {
                     value: (
-                        <Stack direction="horizontal" spacing={0.5} alignItems="center">
-                            <StatusIcon type={statusDisplay.icon} />
-                            <Text size="s" color={statusDisplay.color}>{statusDisplay.text}</Text>
-                        </Stack>
+                        <Text size="s" color={statusDisplay.color}>{statusDisplay.text}</Text>
                     )
                 },
                 {
