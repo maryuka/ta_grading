@@ -82,8 +82,7 @@ const GradingView = ({ students, setStudents, unsavedFeedbacks, setUnsavedFeedba
                 if (res.data && res.data.student && unsavedFeedback === undefined) {
                     // 未保存のフィードバックがない場合のみAPIから取得
                     const existingFeedback = res.data.student['フィードバックコメント'];
-                    const autoFeedback = res.data.student.auto_feedback;
-                    setFeedback(existingFeedback || autoFeedback || '');
+                    setFeedback(existingFeedback || '');
                 }
                 setIsLoading(false);
             })
@@ -97,7 +96,7 @@ const GradingView = ({ students, setStudents, unsavedFeedbacks, setUnsavedFeedba
     useEffect(() => {
         const timer = setTimeout(() => {
             if (details && details.student) {
-                const originalFeedback = details.student['フィードバックコメント'] || details.student.auto_feedback || '';
+                const originalFeedback = details.student['フィードバックコメント'] || '';
                 if (feedback !== originalFeedback) {
                     setUnsavedFeedbacks(prev => ({
                         ...prev,
@@ -176,6 +175,7 @@ const GradingView = ({ students, setStudents, unsavedFeedbacks, setUnsavedFeedba
             });
     }, [feedback, hirodaiID, hasNext, goToNext, navigate, setUnsavedFeedbacks, setStudents]);
 
+
     // キーボードショートカットの実装
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -211,41 +211,38 @@ const GradingView = ({ students, setStudents, unsavedFeedbacks, setUnsavedFeedba
 
     const studentData = details.student;
     const isReviewed = studentData['レビュー済み'] === '1';
-    const hasAutoFeedback = studentData.auto_feedback && !isReviewed;
     const originalFeedback = studentData['フィードバックコメント'] || '';
-    const autoFeedback = studentData.auto_feedback || '';
-    // 自動フィードバックが初期値として設定されている場合も考慮
-    const hasUnsavedChanges = isReviewed
-        ? feedback !== originalFeedback  // レビュー済みの場合は保存済みフィードバックと比較
-        : (feedback !== originalFeedback && feedback !== autoFeedback); // 未レビューの場合は両方と比較
+    const hasUnsavedChanges = feedback !== originalFeedback;
 
     return (
         <div>
-            <h2>{studentData['フルネーム']} ({studentData['広大ID']})</h2>
-
-            {/* 提出ファイル一覧 */}
-            {details.files && details.files.length > 0 && (
-                <div style={{ background: '#f5f5f5', padding: '8px', borderRadius: '4px', marginBottom: '10px' }}>
-                    <strong>提出ファイル:</strong> {
-                        details.files.map((file, index) => {
-                            const expectedFiles = [
-                                `${details.assignment_name}.c`,
-                                `${details.assignment_name}-test-history.txt`
-                            ];
-                            const isExpected = expectedFiles.includes(file);
-                            return (
-                                <span key={file}>
-                                    {index > 0 && ', '}
-                                    <span style={{ color: isExpected ? 'green' : 'red' }}>
-                                        {isExpected ? '○' : '×'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
+                <h2 style={{ margin: 0 }}>{studentData['フルネーム']} ({studentData['広大ID']})</h2>
+                
+                {/* 提出ファイル一覧 */}
+                {details.files && details.files.length > 0 && (
+                    <div style={{ background: '#f5f5f5', padding: '6px 10px', borderRadius: '4px', fontSize: '14px' }}>
+                        <strong>提出ファイル:</strong> {
+                            details.files.map((file, index) => {
+                                const expectedFiles = [
+                                    `${details.assignment_name}.c`,
+                                    `${details.assignment_name}-test-history.txt`
+                                ];
+                                const isExpected = expectedFiles.includes(file);
+                                return (
+                                    <span key={file}>
+                                        {index > 0 && ', '}
+                                        <span style={{ color: isExpected ? 'green' : 'red' }}>
+                                            {isExpected ? '○' : '×'}
+                                        </span>
+                                        {file}
                                     </span>
-                                    {file}
-                                </span>
-                            );
-                        })
-                    }
-                </div>
-            )}
+                                );
+                            })
+                        }
+                    </div>
+                )}
+            </div>
 
             <div className="code-view">
                 <div className="code-panel">
@@ -259,16 +256,50 @@ const GradingView = ({ students, setStudents, unsavedFeedbacks, setUnsavedFeedba
             </div>
 
 
+            {details.auto_check_result && details.auto_check_result !== '' && (
+                <div style={{ 
+                    background: '#f0f8ff', 
+                    padding: '12px', 
+                    borderRadius: '8px', 
+                    marginBottom: '12px',
+                    border: '1px solid #4682b4'
+                }}>
+                    <h4 style={{ marginTop: 0, marginBottom: '8px', color: '#2c5aa0' }}>
+                        🔍 自動チェック結果
+                    </h4>
+                    <div style={{ marginBottom: '8px' }}>
+                        {details.auto_check_result}
+                    </div>
+                    <button
+                        onClick={() => {
+                            if (feedback && feedback.trim() !== '') {
+                                const confirmed = window.confirm(
+                                    '既存のフィードバックが入力されています。\n' +
+                                    '自動チェック結果で上書きしますか？'
+                                );
+                                if (!confirmed) return;
+                            }
+                            setFeedback(details.auto_check_result);
+                        }}
+                        style={{
+                            backgroundColor: '#4682b4',
+                            color: 'white',
+                            border: 'none',
+                            padding: '6px 12px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                        }}
+                    >
+                        この内容でフィードバックを入力
+                    </button>
+                </div>
+            )}
+
             <h4 style={{ marginBottom: '8px' }}>
                 フィードバックコメント
                 {isReviewed && <span style={{ color: 'green' }}>(レビュー済み)</span>}
-                {hasAutoFeedback && <span style={{ color: '#ff6b00' }}>(自動フィードバック入力済み - 保存が必要)</span>}
             </h4>
-            {hasAutoFeedback && (
-                <div style={{ background: '#fff3cd', padding: '10px', borderRadius: '5px', marginBottom: '8px', border: '1px solid #ffc107' }}>
-                    ⚠️ 自動チェックによるフィードバックが入力されています。内容を確認して「保存」ボタンを押してください。
-                </div>
-            )}
             <textarea
                 value={feedback}
                 onChange={e => setFeedback(e.target.value)}
@@ -305,8 +336,22 @@ const GradingView = ({ students, setStudents, unsavedFeedbacks, setUnsavedFeedba
 };
 
 // トップページコンポーネント
-const HomePage = ({ students }) => {
+const HomePage = ({ students, setStudents }) => {
     const [exporting, setExporting] = useState(false);
+    const [checkingAll, setCheckingAll] = useState(false);
+    const [checkProgress, setCheckProgress] = useState({ current: 0, total: 0 });
+    const [autoCheckStatus, setAutoCheckStatus] = useState(null);
+
+    // コンポーネントマウント時に自動チェックステータスを確認
+    useEffect(() => {
+        axios.get('/api/auto-check-status')
+            .then(res => {
+                setAutoCheckStatus(res.data);
+            })
+            .catch(err => {
+                console.error('Failed to fetch auto-check status:', err);
+            });
+    }, []);
 
     // CSVエクスポート機能
     const handleExport = async () => {
@@ -331,6 +376,41 @@ const HomePage = ({ students }) => {
             alert('エクスポートに失敗しました');
         } finally {
             setExporting(false);
+        }
+    };
+
+    // 全学生自動チェック機能
+    const handleAutoCheckAll = async () => {
+        const confirmed = window.confirm(
+            '全学生の自動チェックを実行します。\nレビュー済みの学生はスキップされます。\n続行しますか？'
+        );
+        if (!confirmed) return;
+
+        setCheckingAll(true);
+        setCheckProgress({ current: 0, total: 0 });
+        
+        try {
+            const response = await axios.post('/api/auto-check-all');
+            const result = response.data;
+            
+            // 学生リストを更新
+            const updatedStudents = await axios.get('/api/students');
+            setStudents(updatedStudents.data);
+            
+            // 自動チェックステータスを更新
+            const statusResponse = await axios.get('/api/auto-check-status');
+            setAutoCheckStatus(statusResponse.data);
+            
+            alert(`自動チェックが完了しました。\n\n` +
+                  `チェック対象: ${result.checked}人\n` +
+                  `問題あり: ${result.issues_found}人\n` +
+                  `スキップ（レビュー済み）: ${result.skipped}人`);
+        } catch (error) {
+            console.error('Auto-check all failed:', error);
+            alert('全学生の自動チェックに失敗しました。');
+        } finally {
+            setCheckingAll(false);
+            setCheckProgress({ current: 0, total: 0 });
         }
     };
 
@@ -360,6 +440,38 @@ const HomePage = ({ students }) => {
                         採点を開始
                     </button>
                 </Link>
+                {autoCheckStatus && autoCheckStatus.checked ? (
+                    <button
+                        disabled={true}
+                        style={{ 
+                            padding: '10px 20px', 
+                            fontSize: '16px',
+                            backgroundColor: '#6c757d',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'not-allowed'
+                        }}
+                    >
+                        ✅ この課題では自動チェック済みです
+                    </button>
+                ) : (
+                    <button
+                        onClick={handleAutoCheckAll}
+                        disabled={checkingAll}
+                        style={{ 
+                            padding: '10px 20px', 
+                            fontSize: '16px',
+                            backgroundColor: checkingAll ? '#6c757d' : '#28a745',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: checkingAll ? 'not-allowed' : 'pointer'
+                        }}
+                    >
+                        {checkingAll ? `チェック中... (${checkProgress.current}/${checkProgress.total})` : '🔍 全学生を自動チェック'}
+                    </button>
+                )}
                 <button
                     onClick={handleExport}
                     disabled={exporting}
@@ -388,7 +500,7 @@ function App() {
 
     return (
         <Routes>
-            <Route path="/" element={<HomePage students={students} />} />
+            <Route path="/" element={<HomePage students={students} setStudents={setStudents} />} />
             <Route path="/grading" element={
                 <div className="app-container">
                     <div className="sidebar">

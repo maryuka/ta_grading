@@ -24,6 +24,7 @@ BASE_PATH = os.path.join(PROJECT_ROOT, 'backend', ASSIGNMENT_DIR)
 CSV_PATH = os.path.join(BASE_PATH, CSV_FILE)
 FEEDBACK_CSV_PATH = os.path.join(BASE_PATH, 'list_feedback.csv')  # フィードバック用CSV
 REVIEW_STATUS_PATH = os.path.join(BASE_PATH, 'review_status.json')  # レビュー状態管理用
+AUTO_CHECK_PATH = os.path.join(BASE_PATH, 'auto_check_results.json')  # 自動チェック結果
 SUBMISSION_PATH = os.path.join(BASE_PATH, SUBMISSION_DIR)
 
 app = Flask(__name__)
@@ -70,6 +71,18 @@ def save_review_status(status_dict):
     """レビュー状態を保存"""
     with open(REVIEW_STATUS_PATH, 'w') as f:
         json.dump(status_dict, f, ensure_ascii=False, indent=2)
+
+def load_auto_check_results():
+    """自動チェック結果を読み込み"""
+    if os.path.exists(AUTO_CHECK_PATH):
+        with open(AUTO_CHECK_PATH, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_auto_check_results(results_dict):
+    """自動チェック結果を保存"""
+    with open(AUTO_CHECK_PATH, 'w') as f:
+        json.dump(results_dict, f, ensure_ascii=False, indent=2)
 
 def initialize_feedback_csv():
     """フィードバックCSVが存在しない場合、元のCSVからコピーして作成"""
@@ -237,6 +250,12 @@ def get_student_details(hirodai_id):
     review_status = load_review_status()
     student_dict['レビュー済み'] = '1' if review_status.get(hirodai_id) else ''
     
+    # 自動チェック結果を追加
+    auto_check_data = load_auto_check_results()
+    auto_check_result = ''
+    if auto_check_data and 'results' in auto_check_data:
+        auto_check_result = auto_check_data['results'].get(str(hirodai_id), '')
+    
     # フォルダ内のファイル一覧を取得
     files_in_folder = []
     if folder_path and os.path.exists(folder_path):
@@ -247,9 +266,142 @@ def get_student_details(hirodai_id):
         'source_code': source_code, 
         'test_history': test_history, 
         'files': files_in_folder,
-        'assignment_name': ASSIGNMENT_NAME
+        'assignment_name': ASSIGNMENT_NAME,
+        'auto_check_result': auto_check_result
     }
     return jsonify(response)
+
+# 自動チェック用エンドポイント（個別）
+@app.route('/api/student/<hirodai_id>/auto-check')
+def auto_check_student(hirodai_id):
+    # フィードバックCSVから読み込み
+    df = initialize_feedback_csv()
+    
+    # NaN値をNoneに置換
+    df = df.where(pd.notnull(df), None)
+    student_data = df[df['広大ID'] == hirodai_id].iloc[0]
+    folder_path = find_student_folder(hirodai_id, SUBMISSION_PATH)
+    
+    auto_feedback = ""
+    source_filename = f"{ASSIGNMENT_NAME}.c"
+    history_filename = f"{ASSIGNMENT_NAME}-test-history.txt"
+    source_path = os.path.join(folder_path, source_filename) if folder_path else None
+    history_path = os.path.join(folder_path, history_filename) if folder_path else None
+    
+    # ファイル不備チェック
+    if not source_path or not os.path.exists(source_path) or not os.path.exists(history_path):
+        auto_feedback += f"この課題では \"{source_filename}\" と \"{history_filename}\" を提出してください。"
+        if history_path and not os.path.exists(history_path):
+            auto_feedback += " make testを実行するとtxtファイルが作成されます(演習1の「演習課題のやり方」を参照してください)。"
+    
+    # ヘッダー記入漏れチェック（ソースコードが存在する場合のみ）
+    if source_path and os.path.exists(source_path):
+        with open(source_path, 'r', encoding='utf-8', errors='ignore') as f:
+            source_code = f.read()
+        missing_items = check_header(source_code)
+        if missing_items:
+            auto_feedback += f"{source_filename}に"
+            auto_feedback += ",".join([f" {item}" for item in missing_items])
+            auto_feedback += "を記入してください。"
+    
+    # 既存の自動チェック結果を読み込んで更新
+    auto_check_data = load_auto_check_results()
+    if 'results' not in auto_check_data:
+        from datetime import datetime
+        auto_check_data = {
+            'checked_at': datetime.now().isoformat(),
+            'assignment': ASSIGNMENT_NAME,
+            'results': {}
+        }
+    auto_check_data['results'][str(hirodai_id)] = auto_feedback.strip()
+    save_auto_check_results(auto_check_data)
+    
+    return jsonify({'auto_feedback': auto_feedback.strip()})
+
+# 全学生自動チェック用エンドポイント
+@app.route('/api/auto-check-all', methods=['POST'])
+def auto_check_all_students():
+    # フィードバックCSVから読み込み
+    df = initialize_feedback_csv()
+    
+    # NaN値をNoneに置換
+    df = df.where(pd.notnull(df), None)
+    
+    # 統計情報
+    total_students = 0
+    checked_count = 0
+    issues_found = 0
+    
+    # 自動チェック結果を格納
+    check_results = {}
+    
+    for index, row in df.iterrows():
+        # 未提出はスキップ
+        if '提出済み' not in str(row['ステータス']):
+            continue
+            
+        total_students += 1
+        student_id = str(row['広大ID'])
+        checked_count += 1
+        
+        # 自動チェック実行
+        folder_path = find_student_folder(student_id, SUBMISSION_PATH)
+        auto_feedback = ""
+        source_filename = f"{ASSIGNMENT_NAME}.c"
+        history_filename = f"{ASSIGNMENT_NAME}-test-history.txt"
+        source_path = os.path.join(folder_path, source_filename) if folder_path else None
+        history_path = os.path.join(folder_path, history_filename) if folder_path else None
+        
+        # ファイル不備チェック
+        if not source_path or not os.path.exists(source_path) or not os.path.exists(history_path):
+            auto_feedback += f"この課題では \"{source_filename}\" と \"{history_filename}\" を提出してください。"
+            if history_path and not os.path.exists(history_path):
+                auto_feedback += " make testを実行するとtxtファイルが作成されます(演習1の「演習課題のやり方」を参照してください)。"
+        
+        # ヘッダー記入漏れチェック（ソースコードが存在する場合のみ）
+        if source_path and os.path.exists(source_path):
+            with open(source_path, 'r', encoding='utf-8', errors='ignore') as f:
+                source_code = f.read()
+            missing_items = check_header(source_code)
+            if missing_items:
+                auto_feedback += f"{source_filename}に"
+                auto_feedback += ",".join([f" {item}" for item in missing_items])
+                auto_feedback += "を記入してください。"
+        
+        # 結果を保存（問題がなくても空文字として保存）
+        check_results[student_id] = auto_feedback.strip()
+        if auto_feedback.strip():
+            issues_found += 1
+    
+    # 自動チェック結果をJSONファイルに保存
+    from datetime import datetime
+    auto_check_data = {
+        'checked_at': datetime.now().isoformat(),
+        'assignment': ASSIGNMENT_NAME,
+        'results': check_results
+    }
+    save_auto_check_results(auto_check_data)
+    
+    return jsonify({
+        'total': total_students,
+        'checked': checked_count,
+        'issues_found': issues_found,
+        'skipped': 0
+    })
+
+# 自動チェックステータス確認エンドポイント
+@app.route('/api/auto-check-status')
+def get_auto_check_status():
+    auto_check_data = load_auto_check_results()
+    if auto_check_data and 'checked_at' in auto_check_data:
+        return jsonify({
+            'checked': True,
+            'checked_at': auto_check_data['checked_at'],
+            'assignment': auto_check_data.get('assignment', ASSIGNMENT_NAME)
+        })
+    return jsonify({
+        'checked': False
+    })
 
 @app.route('/api/student/<hirodai_id>/feedback', methods=['POST'])
 def save_feedback(hirodai_id):
