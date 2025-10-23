@@ -1,20 +1,19 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, NavLink, useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import '@freee_jp/vibes/css';
-import { 
+import {
     Button,
     TextArea,
     Container,
     Note,
-    GlobalNavi,
-    DropdownButton
+    GlobalNavi
 } from '@freee_jp/vibes';
-import { 
-    FaDownload, 
-    FaSearch, 
-    FaEdit, 
-    FaCheck, 
+import {
+    FaDownload,
+    FaSearch,
+    FaEdit,
+    FaCheck,
     FaSave,
     FaRedo,
     FaChevronLeft,
@@ -22,6 +21,8 @@ import {
     FaPencilAlt,
     FaClock
 } from 'react-icons/fa';
+import StudentListPage from './StudentListPage';
+import StudentDetailPage from './StudentDetailPage';
 
 // 学生リストコンポーネント
 const StudentList = ({ students, unsavedFeedbacks }) => {
@@ -237,7 +238,7 @@ const GradingView = ({ students, setStudents, unsavedFeedbacks, setUnsavedFeedba
         <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
                 <h2 style={{ margin: 0 }}>{studentData['フルネーム']} ({studentData['広大ID']})</h2>
-                
+
                 {/* 提出ファイル一覧 */}
                 {details.files && details.files.length > 0 && (
                     <div style={{ background: '#f0f8ff', padding: '6px 10px', borderRadius: '4px', fontSize: '14px', border: '1px solid #d0e5ff' }}>
@@ -345,138 +346,121 @@ const GradingView = ({ students, setStudents, unsavedFeedbacks, setUnsavedFeedba
 };
 
 // トップページコンポーネント
-const HomePage = ({ students, setStudents }) => {
-    const [exporting, setExporting] = useState(false);
-    const [checkingAll, setCheckingAll] = useState(false);
-    const [checkProgress, setCheckProgress] = useState({ current: 0, total: 0 });
-    const [autoCheckStatus, setAutoCheckStatus] = useState(null);
-
-    // コンポーネントマウント時に自動チェックステータスを確認
-    useEffect(() => {
-        axios.get('/api/auto-check-status')
-            .then(res => {
-                setAutoCheckStatus(res.data);
-            })
-            .catch(err => {
-                console.error('Failed to fetch auto-check status:', err);
-            });
-    }, []);
-
-    // CSVエクスポート機能
-    const handleExport = async () => {
-        setExporting(true);
-        try {
-            const response = await axios.get('/api/export/csv', {
-                responseType: 'blob'
-            });
-
-            // ダウンロードリンクを作成
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `feedback_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            link.parentNode.removeChild(link);
-
-            alert('CSVファイルをダウンロードしました');
-        } catch (error) {
-            console.error('Export failed:', error);
-            alert('エクスポートに失敗しました');
-        } finally {
-            setExporting(false);
-        }
-    };
-
-    // 全学生自動チェック機能
-    const handleAutoCheckAll = async () => {
-        const confirmed = window.confirm(
-            '全学生の自動チェックを実行します。\nレビュー済みの学生はスキップされます。\n続行しますか？'
-        );
-        if (!confirmed) return;
-
-        setCheckingAll(true);
-        setCheckProgress({ current: 0, total: 0 });
-        
-        try {
-            const response = await axios.post('/api/auto-check-all');
-            const result = response.data;
-            
-            // 学生リストを更新
-            const updatedStudents = await axios.get('/api/students');
-            setStudents(updatedStudents.data);
-            
-            // 自動チェックステータスを更新
-            const statusResponse = await axios.get('/api/auto-check-status');
-            setAutoCheckStatus(statusResponse.data);
-            
-            alert(`自動チェックが完了しました。\n\n` +
-                  `チェック対象: ${result.checked}人\n` +
-                  `問題あり: ${result.issues_found}人\n` +
-                  `スキップ（レビュー済み）: ${result.skipped}人`);
-        } catch (error) {
-            console.error('Auto-check all failed:', error);
-            alert('全学生の自動チェックに失敗しました。');
-        } finally {
-            setCheckingAll(false);
-            setCheckProgress({ current: 0, total: 0 });
-        }
-    };
-
-    // 統計情報を計算
-    const stats = {
-        total: students.length,
-        reviewed: students.filter(s => s['レビュー済み'] === '1').length,
-        needsReview: students.filter(s => s['レビュー済み'] !== '1' && s.auto_feedback).length,
-        pending: students.filter(s => s['レビュー済み'] !== '1' && !s.auto_feedback).length
-    };
+const HomePage = ({ assignments }) => {
+    const navigate = useNavigate();
 
     return (
         <Container width="full">
             <div style={{ padding: '20px' }}>
-                <h1>レビュー記入アプリ</h1>
+                <h1>TAレビューシステム</h1>
 
-                <div style={{ background: '#e8f4ff', padding: '1.5rem', borderRadius: '8px', marginBottom: '20px', border: '1px solid #b8deff' }}>
-                    <h2>レビュー管理</h2>
-                    <p>総提出数: <strong>{stats.total}人</strong></p>
-                    <p style={{ color: 'green' }}>✅ レビュー済み: {stats.reviewed}人</p>
-                    <p style={{ color: 'orange' }}>⚠️ 自動指摘あり: {stats.needsReview}人</p>
-                    <p>📝 未レビュー: {stats.pending}人</p>
+                {/* 課題一覧カード */}
+                <div style={{ marginBottom: '30px' }}>
+                    <h2>📚 課題一覧</h2>
+                    <p style={{ color: '#666', marginBottom: '20px' }}>
+                        課題を選択して学生のレビューを開始してください。上のナビゲーションバーからも直接アクセスできます。
+                    </p>
+                    <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                        gap: '20px',
+                        marginBottom: '30px'
+                    }}>
+                        {assignments.length > 0 ? assignments.map(assignment => (
+                            <div
+                                key={assignment.id}
+                                onClick={() => navigate(`/assignments/${assignment.id}`)}
+                                style={{
+                                    background: '#ffffff',
+                                    border: '2px solid #e0e0e0',
+                                    borderRadius: '12px',
+                                    padding: '20px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                                    e.currentTarget.style.borderColor = '#0066cc';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                                    e.currentTarget.style.borderColor = '#e0e0e0';
+                                }}
+                            >
+                                <h3 style={{ margin: '0 0 10px 0', color: '#333' }}>
+                                    📂 {assignment.name}
+                                </h3>
+                                <p style={{ margin: '0', color: '#666', fontSize: '14px' }}>
+                                    クリックして学生一覧を見る →
+                                </p>
+                            </div>
+                        )) : (
+                            <div style={{
+                                background: '#f8f9fa',
+                                borderRadius: '12px',
+                                padding: '40px',
+                                textAlign: 'center',
+                                color: '#666'
+                            }}>
+                                <p>課題データを読み込み中...</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
-                <Link to="/grading">
-                    <Button appearance="primary" large>
-                        <><FaEdit /> 採点を開始</>
-                    </Button>
-                </Link>
-                {autoCheckStatus && autoCheckStatus.checked ? (
-                    <Button
-                        disabled={true}
-                        appearance="secondary"
-                        large
+                {/* 課題アップロードセクション */}
+                <div style={{ marginTop: '40px', paddingTop: '40px', borderTop: '2px solid #e0e0e0' }}>
+                    <h2>📤 新しい課題をアップロード</h2>
+                    <p style={{ color: '#666', marginBottom: '20px' }}>
+                        新しい課題データをアップロードして、レビューを開始できます。
+                    </p>
+                    <div style={{
+                        background: '#f8f9fa',
+                        border: '2px dashed #6c757d',
+                        borderRadius: '12px',
+                        padding: '40px',
+                        textAlign: 'center',
+                        color: '#495057',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#e9ecef';
+                        e.currentTarget.style.borderColor = '#495057';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.background = '#f8f9fa';
+                        e.currentTarget.style.borderColor = '#6c757d';
+                    }}
+                    onClick={() => alert('アップロード機能は準備中です')}
                     >
-                        ✅ この課題では自動チェック済みです
-                    </Button>
-                ) : (
-                    <Button
-                        onClick={handleAutoCheckAll}
-                        disabled={checkingAll}
-                        appearance="primary"
-                        large
-                    >
-                        {checkingAll ? <><FaClock /> チェック中... ({checkProgress.current}/{checkProgress.total})</> : <><FaSearch /> 全学生を自動チェック</>}
-                    </Button>
-                )}
-                <Button
-                    onClick={handleExport}
-                    disabled={exporting}
-                    appearance="secondary"
-                    large
-                >
-                    {exporting ? <><FaClock /> エクスポート中...</> : <><FaDownload /> CSVダウンロード</>}
-                </Button>
-            </div>
+                        <div style={{ fontSize: '48px', marginBottom: '20px', opacity: '0.5' }}>
+                            📁
+                        </div>
+                        <h3 style={{ margin: '0 0 10px 0', fontWeight: 'normal' }}>
+                            ここをクリックまたはファイルをドロップ
+                        </h3>
+                        <p style={{ margin: '0', fontSize: '14px', color: '#6c757d' }}>
+                            CSVファイルと提出ファイルのZIPをアップロード
+                        </p>
+                        <div style={{ marginTop: '20px' }}>
+                            <Button appearance="primary" disabled>
+                                アップロード（準備中）
+                            </Button>
+                        </div>
+                    </div>
+                    <div style={{ marginTop: '20px', padding: '15px', background: '#fff3cd', borderRadius: '8px', border: '1px solid #ffc107' }}>
+                        <h4 style={{ margin: '0 0 10px 0', color: '#856404' }}>📋 必要なファイル形式</h4>
+                        <ul style={{ margin: '0', paddingLeft: '20px', color: '#856404', fontSize: '14px' }}>
+                            <li>学生リストCSV（list.csv）</li>
+                            <li>提出ファイルのZIPアーカイブ</li>
+                            <li>課題設定ファイル（config.json）</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </Container>
     );
@@ -486,10 +470,22 @@ const HomePage = ({ students, setStudents }) => {
 function App() {
     const [students, setStudents] = useState([]);
     const [unsavedFeedbacks, setUnsavedFeedbacks] = useState({}); // 未保存のフィードバックを管理
+    const [assignments, setAssignments] = useState([]); // 課題一覧
     const location = useLocation();
     const navigate = useNavigate();
 
     useEffect(() => {
+        // 課題一覧を取得
+        axios.get('/api/assignments')
+            .then(res => {
+                setAssignments(res.data);
+            })
+            .catch(err => {
+                console.error('Failed to fetch assignments:', err);
+                setAssignments([]);
+            });
+
+        // 学生一覧を取得（後方互換性のため）
         axios.get('/api/students')
             .then(res => setStudents(res.data))
             .catch(err => {
@@ -498,6 +494,7 @@ function App() {
             });
     }, []);
 
+    
     // グローバルナビのリンク設定
     const globalNavLinks = [
         {
@@ -505,42 +502,32 @@ function App() {
             url: '/',
             current: location.pathname === '/'
         },
-        {
-            title: '採点',
-            url: '/grading',
-            current: location.pathname.startsWith('/grading') || location.pathname.startsWith('/student')
-        }
+        // 課題を直接タブとして表示
+        ...assignments.map(assignment => ({
+            title: assignment.name,
+            url: `/assignments/${assignment.id}`,
+            current: location.pathname.startsWith(`/assignments/${assignment.id}`)
+        }))
     ];
 
-    // 課題選択ドロップダウン
-    const AssignmentDropdown = () => {
-        const dropdownContents = [
-            { type: 'selectable', text: '課題1: 基礎プログラミング', onClick: () => navigate('/assignment/assignment1') },
-            { type: 'selectable', text: '課題2: 配列と文字列', onClick: () => navigate('/assignment/assignment2') },
-            { type: 'selectable', text: '課題3: 関数とポインタ', onClick: () => navigate('/assignment/assignment3') },
-            { type: 'selectable', text: '課題4: 構造体', onClick: () => navigate('/assignment/assignment4') },
-        ];
-
-        return (
-            <DropdownButton
-                buttonLabel="課題選択"
-                dropdownContents={dropdownContents}
-                appearance="tertiary"
-                small
-            />
-        );
-    };
 
     return (
         <>
             <GlobalNavi
                 links={globalNavLinks}
                 hideHelpForm={true}
-                sectionNode={<AssignmentDropdown />}
+                logo={{
+                    linkUrl: '/',
+                    linkTitle: 'TAレビューシステム',
+                    tag: 'TAレビューシステム'
+                }}
             />
-            <div>
+            <div style={{ paddingTop: '48px' }}>
                 <Routes>
-                    <Route path="/" element={<HomePage students={students} setStudents={setStudents} />} />
+                    <Route path="/" element={<HomePage assignments={assignments} />} />
+                    <Route path="/assignments/:assignmentId" element={<StudentListPage />} />
+                    <Route path="/assignments/:assignmentId/students/:studentId" element={<StudentDetailPage />} />
+                    {/* 互換性のために古いルートも残す */}
                     <Route path="/grading" element={
                         <div className="app-container">
                             <div className="sidebar">
@@ -566,17 +553,6 @@ function App() {
                                 <GradingView students={students} setStudents={setStudents} unsavedFeedbacks={unsavedFeedbacks} setUnsavedFeedbacks={setUnsavedFeedbacks} />
                             </main>
                         </div>
-                    } />
-                    <Route path="/assignment/:assignmentId" element={
-                        <Container width="full">
-                            <div style={{ padding: '20px' }}>
-                                <h2>課題レビュー（開発中）</h2>
-                                <p>この機能は現在開発中です。</p>
-                                <Link to="/">
-                                    <Button appearance="secondary">ホームに戻る</Button>
-                                </Link>
-                            </div>
-                        </Container>
                     } />
                 </Routes>
             </div>

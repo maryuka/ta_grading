@@ -59,6 +59,12 @@ body {
     overflow-y: auto;
 }
 
+/* 新しいページレイアウトではフルワイドスを確保 */
+.vb-container--width-full {
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
 .code-view {
     display: flex;
     flex-grow: 1;

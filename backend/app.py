@@ -108,13 +108,83 @@ def initialize_feedback_csv():
             df = pd.read_csv(FEEDBACK_CSV_PATH, encoding='utf-8-sig', keep_default_na=False, na_values=[''])
             return df
 
-@app.route('/api/students')
-def get_students_with_status():
-    # フィードバックCSVを初期化または読み込み
-    df = initialize_feedback_csv()
+@app.route('/api/assignments')
+def get_assignments():
+    """backend/data配下の課題ディレクトリ一覧を返す"""
+    data_dir = os.path.join(PROJECT_ROOT, 'backend', 'data')
+    assignments = []
     
-    # レビュー状態を読み込み
-    review_status = load_review_status()
+    if os.path.exists(data_dir):
+        for item in os.listdir(data_dir):
+            item_path = os.path.join(data_dir, item)
+            # ディレクトリかつ.DS_Storeなどのシステムファイルではない
+            if os.path.isdir(item_path) and not item.startswith('.'):
+                # 課題名を判定（r_1_variableなど）
+                assignment_info = {
+                    'id': item,
+                    'name': item.replace('_', ' ').title(),  # r_1_variable -> R 1 Variable
+                    'path': item
+                }
+                
+                # 特定の課題名のマッピング
+                if item == 'r_1_variable':
+                    assignment_info['name'] = '課題1: 変数'
+                    
+                assignments.append(assignment_info)
+    
+    return jsonify(assignments)
+
+@app.route('/api/students')
+@app.route('/api/assignments/<assignment_id>/students')
+def get_students_with_status(assignment_id=None):
+    # 課題IDが指定された場合、その課題のデータディレクトリを使用
+    if assignment_id:
+        # 動的に課題ディレクトリのパスを構築
+        assignment_base_path = os.path.join(PROJECT_ROOT, 'backend', 'data', assignment_id)
+        assignment_csv_path = os.path.join(assignment_base_path, 'list.csv')
+        assignment_feedback_csv_path = os.path.join(assignment_base_path, 'list_feedback.csv')
+        assignment_review_status_path = os.path.join(assignment_base_path, 'review_status.json')
+        assignment_submission_path = os.path.join(assignment_base_path, 'variable')  # TODO: 課題によってsubmission_dirを動的にする
+        
+        # 課題名も動的に設定
+        if assignment_id == 'r_1_variable':
+            assignment_name = 'variable'
+        else:
+            # デフォルトの課題名を使用
+            assignment_name = ASSIGNMENT_NAME
+    else:
+        # デフォルトのパスを使用（後方互換性のため）
+        assignment_csv_path = CSV_PATH
+        assignment_feedback_csv_path = FEEDBACK_CSV_PATH
+        assignment_review_status_path = REVIEW_STATUS_PATH
+        assignment_submission_path = SUBMISSION_PATH
+        assignment_name = ASSIGNMENT_NAME
+    
+    # フィードバックCSVを初期化または読み込み（課題別のパスを使用）
+    if not os.path.exists(assignment_feedback_csv_path):
+        try:
+            df = pd.read_csv(assignment_csv_path, encoding='utf-8', keep_default_na=False, na_values=[''])
+        except UnicodeDecodeError:
+            df = pd.read_csv(assignment_csv_path, encoding='utf-8-sig', keep_default_na=False, na_values=[''])
+        
+        if 'フィードバックコメント' not in df.columns:
+            df['フィードバックコメント'] = ''
+        
+        df.to_csv(assignment_feedback_csv_path, index=False, encoding='utf-8-sig', na_rep='')
+    else:
+        try:
+            df = pd.read_csv(assignment_feedback_csv_path, encoding='utf-8', keep_default_na=False, na_values=[''])
+        except UnicodeDecodeError:
+            df = pd.read_csv(assignment_feedback_csv_path, encoding='utf-8-sig', keep_default_na=False, na_values=[''])
+    
+    # レビュー状態を読み込み（課題別のパスを使用）
+    if assignment_id and os.path.exists(assignment_review_status_path):
+        with open(assignment_review_status_path, 'r') as f:
+            review_status = json.load(f)
+    elif not assignment_id:
+        review_status = load_review_status()
+    else:
+        review_status = {}
     
     # NaN値をNoneに置換
     df = df.where(pd.notnull(df), None)
@@ -140,10 +210,10 @@ def get_students_with_status():
         auto_feedback = "" # 自動生成されるフィードバック
 
         student_id = row['広大ID']
-        folder_path = find_student_folder(student_id, SUBMISSION_PATH)
-        source_filename = f"{ASSIGNMENT_NAME}.c"
+        folder_path = find_student_folder(student_id, assignment_submission_path)
+        source_filename = f"{assignment_name}.c"
         source_path = os.path.join(folder_path, source_filename) if folder_path else None
-        history_filename = f"{ASSIGNMENT_NAME}-test-history.txt"
+        history_filename = f"{assignment_name}-test-history.txt"
         history_path = os.path.join(folder_path, history_filename) if folder_path else None
         
         # フォルダ内のファイル一覧を取得
