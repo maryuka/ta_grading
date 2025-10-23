@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Routes, Route, NavLink, useParams, useNavigate, Link } from 'react-router-dom';
+import { Routes, Route, NavLink, useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import '@freee_jp/vibes/css';
 import { 
     Button,
     TextArea,
     Container,
-    Note
+    Note,
+    GlobalNavi,
+    DropdownButton
 } from '@freee_jp/vibes';
 import { 
     FaDownload, 
-    FaHome, 
     FaSearch, 
     FaEdit, 
     FaCheck, 
@@ -485,6 +486,8 @@ const HomePage = ({ students, setStudents }) => {
 function App() {
     const [students, setStudents] = useState([]);
     const [unsavedFeedbacks, setUnsavedFeedbacks] = useState({}); // 未保存のフィードバックを管理
+    const location = useLocation();
+    const navigate = useNavigate();
 
     useEffect(() => {
         axios.get('/api/students')
@@ -495,42 +498,89 @@ function App() {
             });
     }, []);
 
+    // グローバルナビのリンク設定
+    const globalNavLinks = [
+        {
+            title: 'ホーム',
+            url: '/',
+            current: location.pathname === '/'
+        },
+        {
+            title: '採点',
+            url: '/grading',
+            current: location.pathname.startsWith('/grading') || location.pathname.startsWith('/student')
+        }
+    ];
+
+    // 課題選択ドロップダウン
+    const AssignmentDropdown = () => {
+        const dropdownContents = [
+            { type: 'selectable', text: '課題1: 基礎プログラミング', onClick: () => navigate('/assignment/assignment1') },
+            { type: 'selectable', text: '課題2: 配列と文字列', onClick: () => navigate('/assignment/assignment2') },
+            { type: 'selectable', text: '課題3: 関数とポインタ', onClick: () => navigate('/assignment/assignment3') },
+            { type: 'selectable', text: '課題4: 構造体', onClick: () => navigate('/assignment/assignment4') },
+        ];
+
+        return (
+            <DropdownButton
+                buttonLabel="課題選択"
+                dropdownContents={dropdownContents}
+                appearance="tertiary"
+                small
+            />
+        );
+    };
+
     return (
-        <Routes>
-            <Route path="/" element={<HomePage students={students} setStudents={setStudents} />} />
-            <Route path="/grading" element={
-                <div className="app-container">
-                    <div className="sidebar">
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <h3>提出済み学生 ({students.length}人)</h3>
-                            <Link to="/">
-                                <Button small appearance="secondary"><FaHome /> ホーム</Button>
-                            </Link>
+        <>
+            <GlobalNavi
+                links={globalNavLinks}
+                hideHelpForm={true}
+                sectionNode={<AssignmentDropdown />}
+            />
+            <div>
+                <Routes>
+                    <Route path="/" element={<HomePage students={students} setStudents={setStudents} />} />
+                    <Route path="/grading" element={
+                        <div className="app-container">
+                            <div className="sidebar">
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <h3>提出済み学生 ({students.length}人)</h3>
+                                </div>
+                                <StudentList students={students} unsavedFeedbacks={unsavedFeedbacks} />
+                            </div>
+                            <main className="main-content">
+                                <h3>学生を選択してください</h3>
+                            </main>
                         </div>
-                        <StudentList students={students} unsavedFeedbacks={unsavedFeedbacks} />
-                    </div>
-                    <main className="main-content">
-                        <h3>学生を選択してください</h3>
-                    </main>
-                </div>
-            } />
-            <Route path="/student/:hirodaiID" element={
-                <div className="app-container">
-                    <div className="sidebar">
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <h3>提出済み学生 ({students.length}人)</h3>
-                            <Link to="/">
-                                <Button small appearance="secondary"><FaHome /> ホーム</Button>
-                            </Link>
+                    } />
+                    <Route path="/student/:hirodaiID" element={
+                        <div className="app-container">
+                            <div className="sidebar">
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <h3>提出済み学生 ({students.length}人)</h3>
+                                </div>
+                                <StudentList students={students} unsavedFeedbacks={unsavedFeedbacks} />
+                            </div>
+                            <main className="main-content">
+                                <GradingView students={students} setStudents={setStudents} unsavedFeedbacks={unsavedFeedbacks} setUnsavedFeedbacks={setUnsavedFeedbacks} />
+                            </main>
                         </div>
-                        <StudentList students={students} unsavedFeedbacks={unsavedFeedbacks} />
-                    </div>
-                    <main className="main-content">
-                        <GradingView students={students} setStudents={setStudents} unsavedFeedbacks={unsavedFeedbacks} setUnsavedFeedbacks={setUnsavedFeedbacks} />
-                    </main>
-                </div>
-            } />
-        </Routes>
+                    } />
+                    <Route path="/assignment/:assignmentId" element={
+                        <Container width="full">
+                            <div style={{ padding: '20px' }}>
+                                <h2>課題レビュー（開発中）</h2>
+                                <p>この機能は現在開発中です。</p>
+                                <Link to="/">
+                                    <Button appearance="secondary">ホームに戻る</Button>
+                                </Link>
+                            </div>
+                        </Container>
+                    } />
+                </Routes>
+            </div>
+        </>
     );
 }
 
