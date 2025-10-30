@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
@@ -7,7 +7,6 @@ import {
     TextArea,
     Note,
     Breadcrumbs,
-    PageTitle,
     Stack,
     Text,
     Loading,
@@ -165,28 +164,47 @@ const StudentDetailPage = () => {
     const isReviewed = studentData['レビュー済み'] === '1';
     const hasUnsavedChanges = feedback !== originalFeedback;
     
-    // パンくずリスト
-    const breadcrumbLinks = [
-        { text: 'ホーム', url: '/' },
-        { text: assignmentName, url: `/assignments/${assignmentId}` },
-        { text: studentData['フルネーム'] }
-    ];
-    
     return (
         <Container width="full">
             <div style={{ padding: '20px' }}>
                 <Stack spacing={1.5}>
-                    <Breadcrumbs links={breadcrumbLinks} />
+                    {/* パンくずリスト */}
+                    <Breadcrumbs 
+                        links={[
+                            { title: 'ホーム', url: '/' },
+                            { title: assignmentName, url: `/assignments/${assignmentId}` },
+                            { title: studentData['フルネーム'] }
+                        ]} 
+                    />
                     
-                    <Stack direction="horizontal" alignItems="center" justifyContent="space-between">
-                        <PageTitle>{studentData['フルネーム']} ({studentData['広大ID']})</PageTitle>
-                        <Button
-                            appearance="tertiary"
-                            onClick={() => navigate(`/assignments/${assignmentId}`)}
-                        >
-                            <FaList /> 一覧に戻る
-                        </Button>
-                    </Stack>
+                    <div style={{ 
+                        display: 'flex', 
+                        flexDirection: 'row',
+                        alignItems: 'center', 
+                        justifyContent: 'space-between', 
+                        marginBottom: '24px',
+                        paddingBottom: '16px',
+                        borderBottom: '1px solid #e0e0e0',
+                        width: '100%'
+                    }}>
+                        <h1 style={{ 
+                            margin: 0, 
+                            fontSize: '24px', 
+                            fontWeight: 'bold',
+                            color: '#333',
+                            flexShrink: 0
+                        }}>
+                            {studentData['フルネーム']} ({studentData['広大ID']})
+                        </h1>
+                        <div style={{ marginLeft: 'auto' }}>
+                            <Button
+                                appearance="tertiary"
+                                onClick={() => navigate(`/assignments/${assignmentId}`)}
+                            >
+                                <FaList /> 一覧に戻る
+                            </Button>
+                        </div>
+                    </div>
                     
                     {/* 提出ファイル一覧 */}
                     {details.files && details.files.length > 0 && (

@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { 
+import {
     Container,
-    PageTitle,
     Button,
     ListTable,
     Text,
     Stack,
     Loading,
-    Message
+    Message,
+    Breadcrumbs
 } from '@freee_jp/vibes';
 import { FaEdit, FaFilter, FaSearch, FaClock, FaDownload } from 'react-icons/fa';
 
@@ -22,21 +22,21 @@ const StudentListPage = () => {
     const [checkingAll, setCheckingAll] = useState(false);
     const [autoCheckStatus, setAutoCheckStatus] = useState(null);
     const [exporting, setExporting] = useState(false);
-    
+
     // 課題名マッピング（backend/dataディレクトリ構造に合わせる）
     const assignmentNames = {
         'r_1_variable': '課題1: 変数',
     };
-    
+
     const assignmentName = assignmentNames[assignmentId] || assignmentId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-    
+
     useEffect(() => {
         // 課題IDを使って特定の課題の学生データを取得
         setLoading(true);
-        const apiUrl = assignmentId === 'r_1_variable' 
+        const apiUrl = assignmentId === 'r_1_variable'
             ? `/api/assignments/${assignmentId}/students`
             : '/api/students';  // フォールバック
-            
+
         axios.get(apiUrl)
             .then(res => {
                 setStudents(res.data || []);
@@ -47,7 +47,7 @@ const StudentListPage = () => {
                 setStudents([]);
                 setLoading(false);
             });
-            
+
         // 自動チェックステータスを確認
         axios.get('/api/auto-check-status')
             .then(res => {
@@ -57,28 +57,28 @@ const StudentListPage = () => {
                 console.error('Failed to fetch auto-check status:', err);
             });
     }, [assignmentId]);
-    
+
     // ステータスの判定
     const getStatus = (student) => {
         if (student['レビュー済み'] === '1') return 'completed';
         if (student.auto_feedback) return 'needs-review';
         return 'pending';
     };
-    
+
     const getStatusDisplay = (status) => {
-        switch(status) {
+        switch (status) {
             case 'completed': return { text: 'レビュー済み', color: 'success' };
             case 'needs-review': return { text: '要確認', color: 'warning' };
             default: return { text: '未レビュー', color: 'grey' };
         }
     };
-    
+
     // フィルタリング
     const filteredStudents = students.filter(student => {
         if (filterStatus === 'all') return true;
         return getStatus(student) === filterStatus;
     });
-    
+
     // テーブルヘッダー
     const headers = [
         { value: 'ステータス', minWidth: 120 },
@@ -87,12 +87,12 @@ const StudentListPage = () => {
         { value: 'フィードバック', minWidth: 150 },
         { value: 'アクション', minWidth: 120, alignCenter: true }
     ];
-    
+
     // テーブル行データの作成
-    const rows = filteredStudents.map((student, index) => {
+    const rows = filteredStudents.map((student) => {
         const status = getStatus(student);
         const statusDisplay = getStatusDisplay(status);
-        
+
         return {
             cells: [
                 {
@@ -107,8 +107,8 @@ const StudentListPage = () => {
                     value: student['フルネーム']
                 },
                 {
-                    value: student['フィードバックコメント'] ? 
-                        <Text size="s" color="grey">入力済み</Text> : 
+                    value: student['フィードバックコメント'] ?
+                        <Text size="s" color="grey">入力済み</Text> :
                         <Text size="s" color="grey">-</Text>
                 },
                 {
@@ -127,7 +127,7 @@ const StudentListPage = () => {
             onClick: () => navigate(`/assignments/${assignmentId}/students/${student['広大ID']}`)
         };
     });
-    
+
     // 統計情報
     const stats = {
         total: students.length,
@@ -135,7 +135,7 @@ const StudentListPage = () => {
         needsReview: students.filter(s => getStatus(s) === 'needs-review').length,
         pending: students.filter(s => getStatus(s) === 'pending').length
     };
-    
+
     // 全学生自動チェック機能
     const handleAutoCheckAll = async () => {
         const confirmed = window.confirm(
@@ -150,7 +150,7 @@ const StudentListPage = () => {
             const result = response.data;
 
             // 学生リストを更新
-            const apiUrl = assignmentId === 'r_1_variable' 
+            const apiUrl = assignmentId === 'r_1_variable'
                 ? `/api/assignments/${assignmentId}/students`
                 : '/api/students';
             const updatedStudents = await axios.get(apiUrl);
@@ -171,7 +171,7 @@ const StudentListPage = () => {
             setCheckingAll(false);
         }
     };
-    
+
     // CSVエクスポート機能
     const handleExport = async () => {
         setExporting(true);
@@ -196,7 +196,7 @@ const StudentListPage = () => {
             setExporting(false);
         }
     };
-    
+
     if (loading) {
         return (
             <Container width="full">
@@ -206,47 +206,69 @@ const StudentListPage = () => {
             </Container>
         );
     }
-    
+
     return (
         <Container width="full">
             <div style={{ padding: '20px', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
                 <Stack spacing={1.5}>
-                    <Stack direction="horizontal" alignItems="center" justifyContent="space-between">
-                        <PageTitle>{assignmentName} - 学生一覧</PageTitle>
-                        <Stack direction="horizontal" spacing={0.5}>
+                    {/* パンくずリスト */}
+                    <Breadcrumbs
+                        links={[
+                            { title: 'ホーム', url: '/' },
+                            { title: assignmentName }
+                        ]}
+                    />
+
+                    <div style={{ 
+                        display: 'flex', 
+                        flexDirection: 'row',
+                        alignItems: 'center', 
+                        justifyContent: 'space-between', 
+                        marginBottom: '24px',
+                        paddingBottom: '16px',
+                        borderBottom: '1px solid #e0e0e0',
+                        width: '100%'
+                    }}>
+                        <h1 style={{ 
+                            margin: 0, 
+                            fontSize: '24px', 
+                            fontWeight: 'bold',
+                            color: '#333',
+                            flexShrink: 0
+                        }}>
+                            {assignmentName} - 学生一覧
+                        </h1>
+                        <div style={{ display: 'flex', flexDirection: 'row', gap: '8px', marginLeft: 'auto' }}>
                             {autoCheckStatus && autoCheckStatus.checked ? (
                                 <Button
                                     disabled={true}
                                     appearance="secondary"
-                                    small
                                 >
-                                    ✅ 自動チェック済み
+                                    <span>✅ 自動チェック済み</span>
                                 </Button>
                             ) : (
                                 <Button
                                     onClick={handleAutoCheckAll}
                                     disabled={checkingAll}
                                     appearance="primary"
-                                    small
                                 >
-                                    {checkingAll ? <><FaClock /> チェック中...</> : <><FaSearch /> 全学生を自動チェック</>}
+                                    <span>{checkingAll ? '⏰ チェック中...' : '🔍 全学生を自動チェック'}</span>
                                 </Button>
                             )}
                             <Button
                                 onClick={handleExport}
                                 disabled={exporting}
                                 appearance="secondary"
-                                small
                             >
-                                {exporting ? <><FaClock /> エクスポート中...</> : <><FaDownload /> CSVダウンロード</>}
+                                <span>{exporting ? '⏰ エクスポート中...' : '📥 CSVダウンロード'}</span>
                             </Button>
-                        </Stack>
-                    </Stack>
-                    
+                        </div>
+                    </div>
+
                     {/* 統計情報 */}
-                    <div style={{ 
-                        background: '#f8f9fa', 
-                        padding: '15px', 
+                    <div style={{
+                        background: '#f8f9fa',
+                        padding: '15px',
                         borderRadius: '8px',
                         marginBottom: '20px'
                     }}>
@@ -257,7 +279,7 @@ const StudentListPage = () => {
                             <Text>📝 未レビュー: <strong>{stats.pending}件</strong></Text>
                         </Stack>
                     </div>
-                    
+
                     {/* フィルター */}
                     <Stack direction="horizontal" spacing={0.5} alignItems="center">
                         <FaFilter />
@@ -291,7 +313,7 @@ const StudentListPage = () => {
                             未レビュー ({stats.pending})
                         </Button>
                     </Stack>
-                    
+
                     {/* テーブル */}
                     {filteredStudents.length > 0 ? (
                         <div style={{ width: '100%' }}>

@@ -7,7 +7,8 @@ import {
     TextArea,
     Container,
     Note,
-    GlobalNavi
+    GlobalNavi,
+    PageTitle
 } from '@freee_jp/vibes';
 import {
     FaDownload,
@@ -352,16 +353,14 @@ const HomePage = ({ assignments }) => {
     return (
         <Container width="full">
             <div style={{ padding: '20px' }}>
-                <h1>TAレビューシステム</h1>
-
                 {/* 課題一覧カード */}
                 <div style={{ marginBottom: '30px' }}>
                     <h2>📚 課題一覧</h2>
                     <p style={{ color: '#666', marginBottom: '20px' }}>
                         課題を選択して学生のレビューを開始してください。上のナビゲーションバーからも直接アクセスできます。
                     </p>
-                    <div style={{ 
-                        display: 'grid', 
+                    <div style={{
+                        display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
                         gap: '20px',
                         marginBottom: '30px'
@@ -427,15 +426,15 @@ const HomePage = ({ assignments }) => {
                         cursor: 'pointer',
                         transition: 'all 0.2s ease'
                     }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#e9ecef';
-                        e.currentTarget.style.borderColor = '#495057';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.background = '#f8f9fa';
-                        e.currentTarget.style.borderColor = '#6c757d';
-                    }}
-                    onClick={() => alert('アップロード機能は準備中です')}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#e9ecef';
+                            e.currentTarget.style.borderColor = '#495057';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = '#f8f9fa';
+                            e.currentTarget.style.borderColor = '#6c757d';
+                        }}
+                        onClick={() => alert('アップロード機能は準備中です')}
                     >
                         <div style={{ fontSize: '48px', marginBottom: '20px', opacity: '0.5' }}>
                             📁
@@ -494,7 +493,7 @@ function App() {
             });
     }, []);
 
-    
+
     // グローバルナビのリンク設定
     const globalNavLinks = [
         {
@@ -513,14 +512,10 @@ function App() {
 
     return (
         <>
+            <PageTitle ml={2} mt={1}>TAレビューシステム</PageTitle>
             <GlobalNavi
                 links={globalNavLinks}
                 hideHelpForm={true}
-                logo={{
-                    linkUrl: '/',
-                    linkTitle: 'TAレビューシステム',
-                    tag: 'TAレビューシステム'
-                }}
             />
             <div style={{ paddingTop: '48px' }}>
                 <Routes>
