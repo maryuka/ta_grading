@@ -164,8 +164,11 @@ const StudentListPage = () => {
 
     // 全学生自動チェック機能
     const handleAutoCheckAll = async () => {
+        const isRecheck = autoCheckStatus && autoCheckStatus.checked;
         const confirmed = window.confirm(
-            '全学生の自動チェックを実行します。\nレビュー済みの学生はスキップされます。\n続行しますか？'
+            isRecheck 
+                ? '全学生の自動チェックを再実行します。\n既存のチェック結果は上書きされます。\n続行しますか？'
+                : '全学生の自動チェックを実行します。\nレビュー済みの学生はスキップされます。\n続行しますか？'
         );
         if (!confirmed) return;
 
@@ -265,22 +268,14 @@ const StudentListPage = () => {
                             {assignmentInfo ? assignmentInfo.name : assignmentId} - 学生一覧
                         </h1>
                         <div style={{ display: 'flex', flexDirection: 'row', gap: '8px', marginLeft: 'auto' }}>
-                            {autoCheckStatus && autoCheckStatus.checked ? (
-                                <Button
-                                    disabled={true}
-                                    appearance="secondary"
-                                >
-                                    <span>✅ 自動チェック済み</span>
-                                </Button>
-                            ) : (
-                                <Button
-                                    onClick={handleAutoCheckAll}
-                                    disabled={checkingAll}
-                                    appearance="primary"
-                                >
-                                    <span>{checkingAll ? '⏰ チェック中...' : '🔍 全学生を自動チェック'}</span>
-                                </Button>
-                            )}
+                            <Button
+                                onClick={handleAutoCheckAll}
+                                disabled={checkingAll}
+                                appearance={autoCheckStatus && autoCheckStatus.checked ? "secondary" : "primary"}
+                            >
+                                <span>{checkingAll ? '⏰ チェック中...' : 
+                                      autoCheckStatus && autoCheckStatus.checked ? '🔄 自動チェックを再実行' : '🔍 全学生を自動チェック'}</span>
+                            </Button>
                             <Button
                                 onClick={handleExport}
                                 disabled={exporting}

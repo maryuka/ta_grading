@@ -234,7 +234,7 @@ def get_students_with_status(assignment_id=None):
                 if key != '広大ID':
                     student_info[key] = None
         
-        # 自動チェックは無効化
+        # 自動チェックは無効化（ただし、保存された結果があれば読み込む）
         student_id = row['広大ID']
         folder_path = find_student_folder(student_id, assignment_submission_path)
         
@@ -244,8 +244,16 @@ def get_students_with_status(assignment_id=None):
             files_in_folder = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
         student_info['files'] = files_in_folder
 
-        # 自動フィードバックは空に設定（無効化）
-        student_info['auto_feedback'] = ""
+        # 保存された自動チェック結果があれば使用、なければ空文字
+        auto_feedback = ""
+        if assignment_id:
+            auto_check_path = os.path.join(assignment_base_path, 'auto_check_results.json')
+            if os.path.exists(auto_check_path):
+                with open(auto_check_path, 'r') as f:
+                    auto_check_data = json.load(f)
+                if auto_check_data and 'results' in auto_check_data:
+                    auto_feedback = auto_check_data['results'].get(str(student_id), "")
+        student_info['auto_feedback'] = auto_feedback
         
         # レビュー状態を追加
         student_id = student_info.get('広大ID')
