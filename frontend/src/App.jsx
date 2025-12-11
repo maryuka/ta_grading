@@ -20,10 +20,12 @@ import {
     FaChevronLeft,
     FaChevronRight,
     FaPencilAlt,
-    FaClock
+    FaClock,
+    FaCloudUploadAlt
 } from 'react-icons/fa';
 import StudentListPage from './StudentListPage';
 import StudentDetailPage from './StudentDetailPage';
+import AssignmentUpload from './AssignmentUpload';
 
 // 学生リストコンポーネント
 const StudentList = ({ students, unsavedFeedbacks }) => {
@@ -416,47 +418,37 @@ const HomePage = ({ assignments }) => {
                     <p style={{ color: '#666', marginBottom: '20px' }}>
                         新しい課題データをアップロードして、レビューを開始できます。
                     </p>
-                    <div style={{
-                        background: '#f8f9fa',
-                        border: '2px dashed #6c757d',
-                        borderRadius: '12px',
-                        padding: '40px',
-                        textAlign: 'center',
-                        color: '#495057',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                    }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#e9ecef';
-                            e.currentTarget.style.borderColor = '#495057';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.background = '#f8f9fa';
-                            e.currentTarget.style.borderColor = '#6c757d';
-                        }}
-                        onClick={() => alert('アップロード機能は準備中です')}
-                    >
-                        <div style={{ fontSize: '48px', marginBottom: '20px', opacity: '0.5' }}>
-                            📁
-                        </div>
-                        <h3 style={{ margin: '0 0 10px 0', fontWeight: 'normal' }}>
-                            ここをクリックまたはファイルをドロップ
-                        </h3>
-                        <p style={{ margin: '0', fontSize: '14px', color: '#6c757d' }}>
-                            CSVファイルと提出ファイルのZIPをアップロード
-                        </p>
-                        <div style={{ marginTop: '20px' }}>
-                            <Button appearance="primary" disabled>
-                                アップロード（準備中）
-                            </Button>
-                        </div>
+                    <div style={{ textAlign: 'center', padding: '30px 0' }}>
+                        <Button 
+                            appearance="primary" 
+                            size="large"
+                            onClick={() => navigate('/assignments/upload')}
+                            style={{
+                                padding: '15px 40px',
+                                fontSize: '16px',
+                                fontWeight: 'bold',
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 6px rgba(0,102,204,0.3)',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,102,204,0.4)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,102,204,0.3)';
+                            }}
+                        >
+                            <FaCloudUploadAlt style={{ marginRight: '10px', fontSize: '20px' }} />
+                            新しい課題をアップロード
+                        </Button>
                     </div>
                     <div style={{ marginTop: '20px', padding: '15px', background: '#fff3cd', borderRadius: '8px', border: '1px solid #ffc107' }}>
                         <h4 style={{ margin: '0 0 10px 0', color: '#856404' }}>📋 必要なファイル形式</h4>
                         <ul style={{ margin: '0', paddingLeft: '20px', color: '#856404', fontSize: '14px' }}>
-                            <li>学生リストCSV（list.csv）</li>
+                            <li>学生リストCSV（必須列: 広大ID, フルネーム, ステータス）</li>
                             <li>提出ファイルのZIPアーカイブ</li>
-                            <li>課題設定ファイル（config.json）</li>
                         </ul>
                     </div>
                 </div>
@@ -470,14 +462,38 @@ function App() {
     const [students, setStudents] = useState([]);
     const [unsavedFeedbacks, setUnsavedFeedbacks] = useState({}); // 未保存のフィードバックを管理
     const [assignments, setAssignments] = useState([]); // 課題一覧
+    const [reviewStats, setReviewStats] = useState({}); // 各課題のレビュー率
     const location = useLocation();
-    const navigate = useNavigate();
 
     useEffect(() => {
+        console.log('App mounted');
         // 課題一覧を取得
         axios.get('/api/assignments')
             .then(res => {
+                console.log('Assignments loaded:', res.data);
                 setAssignments(res.data);
+                
+                // 各課題のレビュー率を取得
+                res.data.forEach(assignment => {
+                    axios.get(`/api/assignments/${assignment.id}/students`)
+                        .then(studentsRes => {
+                            const totalStudents = studentsRes.data.length;
+                            const reviewedStudents = studentsRes.data.filter(s => s['レビュー済み'] === '1').length;
+                            const percentage = totalStudents > 0 ? Math.round((reviewedStudents / totalStudents) * 100) : 0;
+                            
+                            setReviewStats(prev => ({
+                                ...prev,
+                                [assignment.id]: {
+                                    reviewed: reviewedStudents,
+                                    total: totalStudents,
+                                    percentage
+                                }
+                            }));
+                        })
+                        .catch(err => {
+                            console.error(`Failed to fetch students for ${assignment.id}:`, err);
+                        });
+                });
             })
             .catch(err => {
                 console.error('Failed to fetch assignments:', err);
@@ -494,32 +510,21 @@ function App() {
     }, []);
 
 
-    // グローバルナビのリンク設定
-    const globalNavLinks = [
-        {
-            title: 'ホーム',
-            url: '/',
-            current: location.pathname === '/'
-        },
-        // 課題を直接タブとして表示
-        ...assignments.map(assignment => ({
-            title: assignment.name,
-            url: `/assignments/${assignment.id}`,
-            current: location.pathname.startsWith(`/assignments/${assignment.id}`)
-        }))
-    ];
+    // グローバルナビのリンク設定（空の配列）
+    const globalNavLinks = [];
 
 
     return (
         <>
-            <PageTitle ml={2} mt={1}>TAレビューシステム</PageTitle>
-            <GlobalNavi
-                links={globalNavLinks}
-                hideHelpForm={true}
-            />
-            <div style={{ paddingTop: '48px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', width: '100%', borderBottom: '1px solid #e0e0e0', paddingBottom: '10px', marginBottom: '20px' }}>
+                <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <PageTitle mt={1} style={{ cursor: 'pointer' }}>TAレビューシステム</PageTitle>
+                </Link>
+            </div>
+            <div>
                 <Routes>
                     <Route path="/" element={<HomePage assignments={assignments} />} />
+                    <Route path="/assignments/upload" element={<AssignmentUpload />} />
                     <Route path="/assignments/:assignmentId" element={<StudentListPage />} />
                     <Route path="/assignments/:assignmentId/students/:studentId" element={<StudentDetailPage />} />
                     {/* 互換性のために古いルートも残す */}

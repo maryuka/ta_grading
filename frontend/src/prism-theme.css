@@ -1,0 +1,83 @@
+/* Prism.js用のライトテーマ */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+    color: #008000;
+    font-style: italic;
+}
+
+.token.punctuation {
+    color: #212529;
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.deleted {
+    color: #098658;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+    color: #a31515;
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+    color: #212529;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+    color: #0000ff;
+    font-weight: 600;
+}
+
+.token.function,
+.token.class-name {
+    color: #795e26;
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+    color: #e90;
+}
+
+.token.important,
+.token.bold {
+    font-weight: bold;
+}
+
+.token.italic {
+    font-style: italic;
+}
+
+.token.entity {
+    cursor: help;
+}
+
+/* プリプロセッサディレクティブ */
+.token.macro,
+.token.directive,
+.token.directive-hash {
+    color: #af00db;
+}
+
+/* 型 */
+.token.type-name,
+.token.builtin-type {
+    color: #267f99;
+}

@@ -1,0 +1,252 @@
+/* 学生詳細ページのスタイル */
+.student-detail-container {
+    display: flex;
+    gap: 20px;
+    height: calc(100vh - 200px);
+    margin-top: 20px;
+    width: 100%;
+}
+
+/* 左側のコード表示エリア */
+.code-display-area {
+    flex: 3;
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+    min-width: 800px;
+}
+
+.code-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #ffffff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.code-header {
+    background: linear-gradient(to right, #f8f9fa, #e9ecef);
+    padding: 10px 15px;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+    font-size: 14px;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.code-header .file-icon {
+    color: #6c757d;
+}
+
+.code-content {
+    flex: 1;
+    overflow: auto;
+    background-color: #ffffff;
+    position: relative;
+}
+
+.code-content pre {
+    margin: 0;
+    padding: 15px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #212529;
+    white-space: pre;
+    overflow-x: auto;
+    min-height: 100%;
+}
+
+/* Cコードのシンタックスハイライト */
+.code-content pre code {
+    display: block;
+}
+
+/* 右側のフィードバックエリア */
+.feedback-area {
+    flex: 0 0 25%;
+    min-width: 350px;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    position: sticky;
+    top: 20px;
+    height: fit-content;
+    max-height: calc(100vh - 200px);
+}
+
+.feedback-section {
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.feedback-section h4 {
+    margin: 0 0 15px 0;
+    color: #212529;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.feedback-textarea {
+    width: 100%;
+    min-height: 150px;
+    max-height: 300px;
+    padding: 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    resize: vertical;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.feedback-textarea:focus {
+    outline: none;
+    border-color: #0066cc;
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+}
+
+.feedback-textarea.has-unsaved {
+    background-color: #fffbf0;
+    border-color: #ff6b00;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.action-buttons button {
+    flex: 1;
+}
+
+.shortcut-hint {
+    font-size: 12px;
+    color: #6c757d;
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    line-height: 1.5;
+}
+
+/* 自動チェック結果表示 */
+.auto-check-result {
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.auto-check-result strong {
+    color: #856404;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.auto-check-content {
+    color: #333;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-top: 8px;
+}
+
+/* ナビゲーションボタン */
+.navigation-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Prism.jsのトークンクラスは別ファイルで定義 */
+
+/* インデント可視化用のスタイル */
+.indent-tab {
+    background-color: rgba(0, 123, 255, 0.1);
+    border-left: 1px solid rgba(0, 123, 255, 0.3);
+    display: inline-block;
+    position: relative;
+    color: rgba(0, 123, 255, 0.5);
+    font-weight: bold;
+    letter-spacing: -0.2em;
+}
+
+.indent-space {
+    color: rgba(108, 117, 125, 0.4);
+    position: relative;
+}
+
+.indent-space::before {
+    content: '·';
+    position: absolute;
+    left: 0;
+}
+
+.trailing-space {
+    background-color: rgba(255, 0, 0, 0.2);
+    border: 1px dotted rgba(255, 0, 0, 0.5);
+}
+
+/* タブサイズの統一 */
+.code-content pre {
+    tab-size: 4;
+    -moz-tab-size: 4;
+}
+
+/* インデント混在時の警告表示 */
+.indent-warning {
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    color: #856404;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 大画面対応 */
+@media (min-width: 1600px) {
+    .code-display-area {
+        flex: 4;
+    }
+}
+
+/* 中画面対応 */
+@media (max-width: 1400px) {
+    .student-detail-container {
+        flex-direction: column;
+    }
+    
+    .code-display-area {
+        flex: 1;
+        min-width: 100%;
+        height: 50vh;
+    }
+    
+    .feedback-area {
+        max-width: 100%;
+        min-width: 100%;
+        position: relative;
+    }
+}

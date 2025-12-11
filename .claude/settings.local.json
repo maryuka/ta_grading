@@ -11,7 +11,10 @@
       "Bash(npm install:*)",
       "Bash(open http://localhost:5173)"
     ],
-    "deny": [],
+    "deny": [
+      "Read(backend/.env)",
+      "Read(backend/data/*)"
+    ],
     "ask": []
   }
 }

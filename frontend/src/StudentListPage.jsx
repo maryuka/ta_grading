@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useFilter } from './contexts/FilterContext';
 import axios from 'axios';
 import {
     Container,
@@ -16,28 +17,29 @@ import { FaEdit, FaFilter, FaSearch, FaClock, FaDownload } from 'react-icons/fa'
 const StudentListPage = () => {
     const { assignmentId } = useParams();
     const navigate = useNavigate();
+    const { filterState, updateFilter } = useFilter();
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [filterStatus, setFilterStatus] = useState('all'); // all, completed, needs-review, pending
+    const [filterStatus, setFilterStatus] = useState(filterState.assignmentId === assignmentId ? filterState.status : 'all'); // all, completed, needs-review, pending, has-feedback
     const [checkingAll, setCheckingAll] = useState(false);
     const [autoCheckStatus, setAutoCheckStatus] = useState(null);
     const [exporting, setExporting] = useState(false);
-
-    // 課題名マッピング（backend/dataディレクトリ構造に合わせる）
-    const assignmentNames = {
-        'r_1_variable': '課題1: 変数',
-    };
-
-    const assignmentName = assignmentNames[assignmentId] || assignmentId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    const [assignmentInfo, setAssignmentInfo] = useState(null);
 
     useEffect(() => {
+        // 課題情報を取得
+        axios.get('/api/assignments')
+            .then(res => {
+                const assignment = res.data.find(a => a.id === assignmentId);
+                setAssignmentInfo(assignment);
+            })
+            .catch(err => {
+                console.error('Failed to fetch assignment info:', err);
+            });
+
         // 課題IDを使って特定の課題の学生データを取得
         setLoading(true);
-        const apiUrl = assignmentId === 'r_1_variable'
-            ? `/api/assignments/${assignmentId}/students`
-            : '/api/students';  // フォールバック
-
-        axios.get(apiUrl)
+        axios.get(`/api/assignments/${assignmentId}/students`)
             .then(res => {
                 setStudents(res.data || []);
                 setLoading(false);
@@ -48,8 +50,8 @@ const StudentListPage = () => {
                 setLoading(false);
             });
 
-        // 自動チェックステータスを確認
-        axios.get('/api/auto-check-status')
+        // 自動チェックステータスを確認（課題ID別）
+        axios.get(`/api/assignments/${assignmentId}/auto-check-status`)
             .then(res => {
                 setAutoCheckStatus(res.data);
             })
@@ -64,6 +66,11 @@ const StudentListPage = () => {
         if (student.auto_feedback) return 'needs-review';
         return 'pending';
     };
+    
+    // フィードバックが記入済みか判定
+    const hasFeedback = (student) => {
+        return student['フィードバックコメント'] && student['フィードバックコメント'].trim() !== '';
+    };
 
     const getStatusDisplay = (status) => {
         switch (status) {
@@ -73,9 +80,27 @@ const StudentListPage = () => {
         }
     };
 
+    // フィルター変更時にコンテキストを更新
+    useEffect(() => {
+        const filteredIds = students
+            .filter(student => {
+                if (filterStatus === 'all') return true;
+                if (filterStatus === 'has-feedback') return hasFeedback(student);
+                return getStatus(student) === filterStatus;
+            })
+            .map(student => student['広大ID']);
+        
+        updateFilter({
+            status: filterStatus,
+            assignmentId: assignmentId,
+            filteredStudentIds: filteredIds
+        });
+    }, [filterStatus, students, assignmentId]);
+
     // フィルタリング
     const filteredStudents = students.filter(student => {
         if (filterStatus === 'all') return true;
+        if (filterStatus === 'has-feedback') return hasFeedback(student);
         return getStatus(student) === filterStatus;
     });
 
@@ -133,7 +158,8 @@ const StudentListPage = () => {
         total: students.length,
         completed: students.filter(s => getStatus(s) === 'completed').length,
         needsReview: students.filter(s => getStatus(s) === 'needs-review').length,
-        pending: students.filter(s => getStatus(s) === 'pending').length
+        pending: students.filter(s => getStatus(s) === 'pending').length,
+        hasFeedback: students.filter(s => hasFeedback(s)).length
     };
 
     // 全学生自動チェック機能
@@ -146,18 +172,15 @@ const StudentListPage = () => {
         setCheckingAll(true);
 
         try {
-            const response = await axios.post('/api/auto-check-all');
+            const response = await axios.post(`/api/assignments/${assignmentId}/auto-check-all`);
             const result = response.data;
 
             // 学生リストを更新
-            const apiUrl = assignmentId === 'r_1_variable'
-                ? `/api/assignments/${assignmentId}/students`
-                : '/api/students';
-            const updatedStudents = await axios.get(apiUrl);
+            const updatedStudents = await axios.get(`/api/assignments/${assignmentId}/students`);
             setStudents(updatedStudents.data);
 
             // 自動チェックステータスを更新
-            const statusResponse = await axios.get('/api/auto-check-status');
+            const statusResponse = await axios.get(`/api/assignments/${assignmentId}/auto-check-status`);
             setAutoCheckStatus(statusResponse.data);
 
             alert(`自動チェックが完了しました。\n\n` +
@@ -176,14 +199,17 @@ const StudentListPage = () => {
     const handleExport = async () => {
         setExporting(true);
         try {
-            const response = await axios.get('/api/export/csv', {
+            const response = await axios.get(`/api/assignments/${assignmentId}/export/csv`, {
                 responseType: 'blob'
             });
 
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `feedback_${assignmentName}_${new Date().toISOString().split('T')[0]}.csv`);
+            // 課題名を使って分かりやすいファイル名にする
+            const assignmentName = assignmentInfo ? assignmentInfo.name.replace(/[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u3400-\u4DBFa-zA-Z0-9]/g, '_') : assignmentId;
+            const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
+            link.setAttribute('download', `フィードバック_${assignmentName}_${date}.csv`);
             document.body.appendChild(link);
             link.click();
             link.parentNode.removeChild(link);
@@ -215,7 +241,7 @@ const StudentListPage = () => {
                     <Breadcrumbs
                         links={[
                             { title: 'ホーム', url: '/' },
-                            { title: assignmentName }
+                            { title: assignmentInfo ? assignmentInfo.name : assignmentId }
                         ]}
                     />
 
@@ -236,7 +262,7 @@ const StudentListPage = () => {
                             color: '#333',
                             flexShrink: 0
                         }}>
-                            {assignmentName} - 学生一覧
+                            {assignmentInfo ? assignmentInfo.name : assignmentId} - 学生一覧
                         </h1>
                         <div style={{ display: 'flex', flexDirection: 'row', gap: '8px', marginLeft: 'auto' }}>
                             {autoCheckStatus && autoCheckStatus.checked ? (
@@ -311,6 +337,13 @@ const StudentListPage = () => {
                             onClick={() => setFilterStatus('pending')}
                         >
                             未レビュー ({stats.pending})
+                        </Button>
+                        <Button
+                            small
+                            appearance={filterStatus === 'has-feedback' ? 'primary' : 'tertiary'}
+                            onClick={() => setFilterStatus('has-feedback')}
+                        >
+                            フィードバック記入済み ({stats.hasFeedback})
                         </Button>
                     </Stack>
 
